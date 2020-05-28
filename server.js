@@ -12,9 +12,22 @@ const server = express()
 
 const io = socketIO(server);
 
-io.on('connection', (socket) => {
-  console.log('Client connected');
-  socket.on('disconnect', () => console.log('Client disconnected'));
-});
+io.on('connection', socket => {
+  let roomId = socket.handshake.query['room'] || socket.id;
+  socket.on('disconnect', () => console.log(`Client from room ${roomId} disconnected`));
 
-setInterval(() => io.emit('time', new Date().toTimeString()), 1000);
+  socket.join(roomId, () => {
+    console.log(socket.rooms);
+    socket.emit('room', roomId);
+  });
+
+  socket.on('pause', () => {
+    console.log('Received Pause from ', socket.id);
+    socket.to(roomId).emit('pause', socket.id);
+  });
+
+  socket.on('play', () => {
+    console.log('Received Play from ', socket.id);
+    socket.to(roomId).emit('play', socket.id);
+  });
+});

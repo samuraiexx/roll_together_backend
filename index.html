@@ -2,16 +2,16 @@
   <head>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      let socket = io();
+      let socket = io('http://localhost:3000'); //'https://crunchyroll-party.herokuapp.com');
       let el;
 
-      socket.on('time', (timeString) => {
-        el = document.getElementById('server-time');
-        el.innerHTML = 'Server time: ' + timeString;
+      socket.on('room', roomId => {
+        el = document.getElementById('room');
+        el.innerHTML = roomId;
       });
     </script>
   </head>
   <body>
-    <p id="server-time"></p>
+    Your Room Id is <span id="room"></span>
   </body>
 </html>
