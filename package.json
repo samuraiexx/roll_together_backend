@@ -1,0 +1,35 @@
+{
+  "name": "crunchyroll_party_backend",
+  "version": "0.1.0",
+  "description": "Backend for Crunchy Party Chrome Extension",
+  "main": "server-local.js",
+  "scripts": {
+    "build": "netlify-lambda build express",
+    "start": "node server-local.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samuraiexx/crunchyroll_party_backend.git"
+  },
+  "keywords": [
+    "Chrome",
+    "Extension",
+    "Crunchyroll",
+    "Party"
+  ],
+  "author": "SamuraiExx",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/samuraiexx/crunchyroll_party_backend/issues"
+  },
+  "homepage": "https://github.com/samuraiexx/crunchyroll_party_backend#readme",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "netlify-lambda": "^1.6.3",
+    "serverless-http": "^2.5.0",
+    "nodemon": "^2.0.4"
+  }
+}
