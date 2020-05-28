@@ -1,1 +1,1 @@
-# crunchyroll_party_backend
+# crunchy_party_backend

@@ -1,5 +1,5 @@
 {
-  "name": "crunchyroll_party_backend",
+  "name": "crunchy_party_backend",
   "version": "0.1.0",
   "description": "Backend for Crunchy Party Chrome Extension",
   "main": "server.js",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/samuraiexx/crunchyroll_party_backend.git"
+    "url": "git+https://github.com/samuraiexx/crunchy_party_backend.git"
   },
   "keywords": [
     "Chrome",
@@ -20,9 +20,9 @@
   "author": "SamuraiExx",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/samuraiexx/crunchyroll_party_backend/issues"
+    "url": "https://github.com/samuraiexx/crunchy_party_backend/issues"
   },
-  "homepage": "https://github.com/samuraiexx/crunchyroll_party_backend#readme",
+  "homepage": "https://github.com/samuraiexx/crunchy_party_backend#readme",
   "dependencies": {
     "express": "^4.17.1",
     "nodemon": "^2.0.4",
