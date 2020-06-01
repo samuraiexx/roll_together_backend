@@ -56,8 +56,8 @@ io.on('connection', socket => {
       recalcRoomTime(roomId, videoProgress);
     }
 
-    setRoomState(roomId, RoomStates.PAUSED);
     videoProgress = getVideoProgress(roomId);
+    setRoomState(roomId, RoomStates.PAUSED);
     const roomState = getRoomState(roomId);
 
     socket.emit('join', roomId, roomState, videoProgress);
