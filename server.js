@@ -56,12 +56,13 @@ io.on('connection', socket => {
       recalcRoomTime(roomId, videoProgress);
     }
 
+    const userCount = io.sockets.adapter.rooms[roomId].length;
     videoProgress = getVideoProgress(roomId);
     setRoomState(roomId, RoomStates.PAUSED);
     const roomState = getRoomState(roomId);
 
-    socket.emit('join', roomId, roomState, videoProgress);
-    socket.to(roomId).emit('update', socket.id, roomState, videoProgress);
+    socket.emit('join', roomId, roomState, videoProgress, userCount);
+    socket.to(roomId).emit('update', socket.id, roomState, videoProgress, userCount);
   });
 
   socket.on('update', (videoState, videoProgress) => {
