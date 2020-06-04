@@ -11,6 +11,10 @@ const RoomStates = {
   PAUSED: 'paused',
 };
 
+const getUserCount = (roomId) => {
+  return io.sockets.adapter.rooms[roomId].length;
+}
+
 const setRoomState = (roomId, state) => {
   const room = io.sockets.adapter.rooms[roomId];
   room.state = state;
@@ -56,7 +60,7 @@ io.on('connection', socket => {
       recalcRoomTime(roomId, videoProgress);
     }
 
-    const userCount = io.sockets.adapter.rooms[roomId].length;
+    const userCount = getUserCount(roomId);
     videoProgress = getVideoProgress(roomId);
     setRoomState(roomId, RoomStates.PAUSED);
     const roomState = getRoomState(roomId);
@@ -67,11 +71,12 @@ io.on('connection', socket => {
 
   socket.on('update', (videoState, videoProgress) => {
     console.log('Received Update from ', socket.id, { videoState, videoProgress });
+    const userCount = getUserCount(roomId);
     setRoomState(roomId, videoState);
     recalcRoomTime(roomId, videoProgress);
 
     const roomState = getRoomState(roomId);
     videoProgress = getVideoProgress(roomId);
-    socket.to(roomId).emit('update', socket.id, roomState, videoProgress);
+    socket.to(roomId).emit('update', socket.id, roomState, videoProgress, userCount);
   });
 });
