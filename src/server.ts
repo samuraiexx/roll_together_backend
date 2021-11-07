@@ -1,5 +1,3 @@
-'use strict';
-
 const express = require('express');
 const socketIO = require('socket.io');
 
@@ -37,7 +35,7 @@ const getVideoProgress = (roomId) => {
   if (!room.time) return null;
 
   const additionalProgress = 
-    room.state === RoomStates.PLAYING && ((new Date()) - room.time.date) / 1000;
+    room.state === RoomStates.PLAYING && ((new Date().getTime()) - room.time.date) / 1000;
   return room.time.progress + additionalProgress;
 }
 
