@@ -10,7 +10,7 @@ enum VideoState {
   PAUSED = "paused",
 }
 
-interface Room {
+interface Room extends Set<string> {
   state: VideoState;
   time?: {
     date: Date;
@@ -29,7 +29,8 @@ const getRoom = (roomId: string) => {
 
 const getUserCount = (roomId: string) => {
   const room = getRoom(roomId);
-  return room ? Object.keys(room).length : 0;
+  console.log(`Room (${roomId}): `, room);
+  return room?.size ?? 0;
 }
 
 const setRoomVideoState = (roomId: string, state: VideoState) => {
@@ -85,7 +86,7 @@ io.on("connection", socket => {
 
   console.log("Received connection try", { roomId, videoProgress });
 
-  socket.on("disconnect", () => console.log(`Client from room ${roomId} disconnected`));
+  socket.on("disconnect", (d) => console.log(`Client from room ${roomId} disconnected. Current room state: `, getRoom(roomId)));
 
   socket.join(roomId);
   if (getVideoProgress(roomId) === null) {
