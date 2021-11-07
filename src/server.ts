@@ -21,7 +21,7 @@ interface Room extends Set<string> {
 const getRoom = (roomId: string) => {
   const room = io.sockets.adapter.rooms.get(roomId);
   if (room) {
-    return room as unknown as Room;
+    return room as Room;
   } else {
     return null;
   }
