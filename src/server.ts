@@ -1,139 +1,159 @@
-import express from "express";
-import path from "path";
-import { Server as SocketServer } from "socket.io";
-
-const PORT = process.env.PORT || 3000;
-const INDEX = "./index.html";
+import { Server as SocketServer, Socket } from "socket.io";
 
 enum VideoState {
   PLAYING = "playing",
   PAUSED = "paused",
 }
 
-interface Room extends Set<string> {
+interface Room {
   state: VideoState;
-  time?: {
-    date: Date;
-    progress: number;
+  progress: {
+    value: number;
+    lastUpdate: Date;
   };
+  users: Set<string>;
 }
 
-const getRoom = (roomId: string) => {
-  const room = io.sockets.adapter.rooms.get(roomId);
-  if (room) {
-    return room as Room;
-  } else {
-    return null;
+interface ServerToClientEvents {
+  update: (
+    senderId: string,
+    state: VideoState,
+    progress: number,
+    userCount: number
+  ) => void;
+  join: (
+    roomId: string,
+    state: VideoState,
+    progress: number,
+    userCount: number
+  ) => void;
+}
+
+interface ClientToServerEvents {
+  update: (state: VideoState, progress: number) => void;
+}
+
+const PORT: number = parseInt(process.env.PORT || "3000");
+const rooms: { [key: string]: Room } = {};
+
+const joinRoom = (roomId: string, socket: Socket, initialProgress: number) => {
+  if (rooms[roomId] === undefined) {
+    rooms[roomId] = {
+      state: VideoState.PAUSED,
+      progress: { value: initialProgress, lastUpdate: new Date() },
+      users: new Set(),
+    };
+  }
+  socket.join(roomId);
+  rooms[roomId].state = VideoState.PAUSED;
+  rooms[roomId].users.add(socket.id);
+};
+
+const leaveRoom = (roomId: string, socket: Socket) => {
+  // It will automatically leave the room for socketIO
+  rooms[roomId].users.delete(socket.id);
+  if (rooms[roomId].users.size === 0) {
+    delete rooms[roomId];
   }
 };
 
 const getUserCount = (roomId: string) => {
-  const room = getRoom(roomId);
-  console.log(`Room (${roomId}): `, room);
-  return room?.size ?? 0;
+  return rooms[roomId].users.size;
 };
 
-const setRoomVideoState = (roomId: string, state: VideoState) => {
-  const room = getRoom(roomId);
-  if (room) {
-    room.state = state;
-  }
+const updateVideoState = (roomId: string, state: VideoState) => {
+  rooms[roomId].state = state;
 };
 
-const getRoomVideoState = (roomId: string) => {
-  const room = getRoom(roomId);
-  return room?.state;
+const getVideoState = (roomId: string) => {
+  return rooms[roomId].state;
 };
 
-const recalcRoomTime = (roomId: string, videoProgress: number) => {
-  const room = getRoom(roomId);
-  if (!room) return;
-
-  if (!room?.time) {
-    room.time = {
-      date: new Date(),
-      progress: videoProgress,
-    };
-  } else {
-    room.time.date = new Date();
-    room.time.progress = videoProgress;
-  }
+const updateRoomProgress = (roomId: string, progress: number) => {
+  rooms[roomId].progress.lastUpdate = new Date();
+  rooms[roomId].progress.value = progress;
 };
 
 const getVideoProgress = (roomId: string) => {
-  const room = getRoom(roomId);
-  if (!room?.time) return null;
-
   const additionalProgress =
-    room.state === VideoState.PLAYING
-      ? (new Date().getTime() - room.time.date.getTime()) / 1000
+    rooms[roomId].state === VideoState.PLAYING
+      ? (new Date().getTime() - rooms[roomId].progress.lastUpdate.getTime()) /
+        1000
       : 0;
 
-  return room.time.progress + additionalProgress;
+  return rooms[roomId].progress.value + additionalProgress;
 };
 
-const server = express()
-  .use((req, res) => res.sendFile(INDEX, { root: path.resolve("./static") }))
-  .listen(PORT, () => console.log(`Listening on ${PORT}`));
-
-const io = new SocketServer(server, {
+const io = new SocketServer<ClientToServerEvents, ServerToClientEvents>({
   cors: {
-    origin: "*",
+    origin: true,
+    credentials: true,
   },
   allowEIO3: true,
+  pingTimeout: 60000,
 });
 
 io.on("connection", (socket) => {
-  const roomId = first(socket.handshake.query["room"]) || socket.id;
-  let videoProgress = parseInt(
-    first(socket.handshake.query["videoProgress"]) || ""
+  const roomId = first(socket.handshake.query["room"]) || genId();
+  const initialProgress = parseInt(
+    first(socket.handshake.query["videoProgress"]) || "0"
   );
 
-  console.log("Received connection try", { roomId, videoProgress });
+  console.log("Received connection try", { roomId, initialProgress });
 
-  socket.on("disconnect", (d) =>
+  socket.on("disconnect", () => {
     console.log(
       `Client from room ${roomId} disconnected. Current room state: `,
-      getRoom(roomId)
-    )
-  );
-
-  socket.join(roomId);
-  if (getVideoProgress(roomId) === null) {
-    recalcRoomTime(roomId, videoProgress);
-  }
-
-  const userCount = getUserCount(roomId);
-  videoProgress = getVideoProgress(roomId) || 0;
-  setRoomVideoState(roomId, VideoState.PAUSED);
-  const roomVideoState = getRoomVideoState(roomId);
-
-  socket.emit("join", roomId, roomVideoState, videoProgress, userCount);
-  socket
-    .to(roomId)
-    .emit("update", socket.id, roomVideoState, videoProgress, userCount);
+      rooms[roomId]
+    );
+    leaveRoom(roomId, socket);
+  });
 
   socket.on("update", (videoState, videoProgress) => {
-    console.log("Received Update from ", socket.id, {
+    console.log(`Received Update from ${socket.id} to ${roomId}`, {
       videoState,
       videoProgress,
     });
-    const userCount = getUserCount(roomId);
-    setRoomVideoState(roomId, videoState);
-    recalcRoomTime(roomId, videoProgress);
+    updateVideoState(roomId, videoState);
+    updateRoomProgress(roomId, videoProgress);
 
-    const roomState = getRoomVideoState(roomId);
-    videoProgress = getVideoProgress(roomId);
     socket
       .to(roomId)
-      .emit("update", socket.id, roomState, videoProgress, userCount);
+      .emit(
+        "update",
+        socket.id,
+        getVideoState(roomId),
+        getVideoProgress(roomId),
+        getUserCount(roomId)
+      );
   });
+
+  joinRoom(roomId, socket, initialProgress);
+
+  const userCount = getUserCount(roomId);
+  const progress = getVideoProgress(roomId);
+  const videoState = getVideoState(roomId);
+
+  socket.emit("join", roomId, videoState, progress, userCount);
+  socket.to(roomId).emit("update", socket.id, videoState, progress, userCount);
 });
 
 function first<T>(value: T | T[]) {
   if (Array.isArray(value)) {
     return value.length > 0 ? value[0] : null;
-  } else {
-    return value;
   }
+  return value;
 }
+
+function genId() {
+  const length = 20;
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+  const id = Array.from(Array(length))
+    .map((_) => characters[Math.floor(Math.random() * characters.length)])
+    .join("");
+  return id;
+}
+
+io.listen(PORT);

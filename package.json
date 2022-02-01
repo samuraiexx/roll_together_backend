@@ -1,6 +1,6 @@
 {
   "name": "roll_together_backend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Backend for Roll Together Chrome Extension",
   "main": "server.js",
   "scripts": {
