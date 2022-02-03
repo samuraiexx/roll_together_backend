@@ -1,4 +1,6 @@
 import { Server as SocketServer, Socket } from "socket.io";
+import express from "express";
+import { createServer } from "http";
 
 enum VideoState {
   PLAYING = "playing",
@@ -84,14 +86,17 @@ const getVideoProgress = (roomId: string) => {
   return rooms[roomId].progress.value + additionalProgress;
 };
 
-const io = new SocketServer<ClientToServerEvents, ServerToClientEvents>({
-  cors: {
-    origin: true,
-    credentials: true,
-  },
-  allowEIO3: true,
-  pingTimeout: 60000,
-});
+const app = express();
+const httpServer = createServer(app);
+const io = new SocketServer<ClientToServerEvents, ServerToClientEvents>(
+  httpServer,
+  {
+    cors: {
+      origin: true,
+      credentials: true,
+    },
+  }
+);
 
 io.on("connection", (socket) => {
   const roomId = first(socket.handshake.query["room"]) || genId();
@@ -156,4 +161,4 @@ function genId() {
   return id;
 }
 
-io.listen(PORT);
+httpServer.listen(PORT);
